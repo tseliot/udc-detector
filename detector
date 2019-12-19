@@ -1,0 +1,50 @@
+#!/usr/bin/python3
+#
+#       Copyright 2019 Canonical Ltd.
+#       Author: Alberto Milone <alberto.milone@canonical.com>
+#
+
+import os
+import subprocess
+import gi
+
+
+gi.require_version('UMockdev', '1.0')
+from gi.repository import UMockdev
+
+
+# get the IDs from here:
+# http://us.download.nvidia.com/XFree86/Linux-x86_64/440.44/README/supportedchips.html
+# GeForce RTX 2080 Ti
+modalias_nv_latest = 'pci:v000010DEd00001E04sv00003842sd00002670bc03sc03i00'
+
+# GeForce GTX 470 06CD - 390 legacy driver
+modalias_nv_legacy = 'pci:v000010DEd000006CDsv00003842sd00002670bc03sc03i00'
+
+
+def gen_fakehw():
+    '''Generate an UMockdev.Testbed object for testing'''
+
+    t = UMockdev.Testbed.new()
+
+    t.add_device('pci', 'graphics_nv_latest', None, ['modalias', modalias_nv_latest], [])
+    t.add_device('pci', 'graphics_nv_legacy', None, ['modalias', modalias_nv_legacy], [])
+
+    return t
+
+
+def main():
+    tool_path = '/usr/bin/ubuntu-drivers'
+    umockdev = gen_fakehw()
+    os.environ['UBUNTU_DRIVERS_SYS_DIR'] = umockdev.get_sys_dir()
+
+    ud = subprocess.Popen(
+            [tool_path, 'list'],
+            universal_newlines=True, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+    out, err = ud.communicate()
+
+    print(out)
+
+if __name__ == '__main__':
+    main()
